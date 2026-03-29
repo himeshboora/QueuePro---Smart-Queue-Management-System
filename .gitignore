@@ -1,0 +1,24 @@
+C compiled binaries
+
+queue
+*.out
+*.exe
+*.o
+
+Python cache and environments
+
+pycache/
+*.pyc
+*.pyo
+venv/
+env/
+
+IDE and Editor files (VS Code, IntelliJ, etc.)
+
+.vscode/
+.idea/
+
+OS generated files
+
+.DS_Store
+Thumbs.db
