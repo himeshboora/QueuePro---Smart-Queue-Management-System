@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueuePro | Efficiency First</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .stats-card { background: white; border-bottom: 4px solid #3b82f6; }
+        .ticket-receipt { 
+            background: white; 
+            border: 2px dashed #e2e8f0; 
+            position: relative;
+        }
+        .ticket-receipt::before, .ticket-receipt::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #f1f5f9;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .ticket-receipt::before { left: -12px; }
+        .ticket-receipt::after { right: -12px; }
+        
+        /* Custom styling for the inline select to make it look seamless */
+        .inline-select {
+            background-color: transparent;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .inline-select:hover, .inline-select:focus {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="bg-white border-b border-slate-200 px-6 py-4 mb-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-blue-600 text-2xl"></i>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Queue<span class="text-blue-600">Pro</span></h1>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Average Wait</p>
+                    <p class="text-sm font-semibold text-slate-700">5 mins / person</p>
+                </div>
+                <div class="h-8 w-px bg-slate-200"></div>
+                <div id="live-clock" class="text-sm font-medium text-slate-500">--:--:--</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 pb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-blue-600"></i> New Check-in
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Full Name</label>
+                            <input type="text" id="custName" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Enter customer name">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Service Type</label>
+                            <select id="serviceType" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="General Inquiries">General Inquiries</option>
+                                <option value="Cashier / Banking">Cashier / Banking</option>
+                                <option value="Technical Support">Technical Support</option>
+                                <option value="Document Collection">Document Collection</option>
+                            </select>
+                        </div>
+
+                        <button onclick="addCustomer()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg shadow-md transition-all active:transform active:scale-95">
+                            Issue Ticket
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ticketArea" class="hidden">
+                    <div class="ticket-receipt p-6 rounded-lg text-slate-800 shadow-sm">
+                        <p class="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Your Position</p>
+                        <h3 class="text-center text-5xl font-black text-blue-600 mb-4" id="tId">#1001</h3>
+                        <div class="border-t border-slate-100 pt-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-400">Customer:</span>
+                                <span class="font-semibold" id="tName">--</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-400">Service:</span>
+                                <span class="font-semibold" id="tService">--</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-400">Est. Wait:</span>
+                                <span class="font-bold text-blue-600" id="tWait">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-6">
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="stats-card p-4 rounded-xl shadow-sm">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Waiting</p>
+                        <p id="count-waiting" class="text-2xl font-black text-slate-800">0</p>
+                    </div>
+                    <div class="stats-card p-4 rounded-xl shadow-sm border-blue-400">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Total Today</p>
+                        <p id="count-total" class="text-2xl font-black text-slate-800">0</p>
+                    </div>
+                    <div class="stats-card p-4 rounded-xl shadow-sm border-emerald-400">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Served</p>
+                        <p id="count-served" class="text-2xl font-black text-slate-800">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-700">Queue Monitor</h3>
+                    <button onclick="serveNext()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-bullhorn"></i> Call Next
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold">
+                            <tr>
+                                <th class="px-6 py-4">Ticket</th>
+                                <th class="px-6 py-4">Customer</th>
+                                <th class="px-6 py-4 w-48">Service (Editable)</th>
+                                <th class="px-6 py-4">Wait Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queueList" class="divide-y divide-slate-100">
+                            </tbody>
+                    </table>
+                    <div id="emptyState" class="p-12 text-center text-slate-400">
+                        <i class="fa-solid fa-list-check text-3xl mb-2 opacity-20"></i>
+                        <p class="text-sm">The queue is currently empty.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl hidden transform transition-all duration-300 z-50">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toastMsg" class="font-medium text-sm"></span>
+        </div>
+    </div>
+
+    <script>
+        let queue = [];
+        let ticketCounter = 1000;
+        let servedCount = 0;
+        const AVG_TIME = 5;
+
+        // Available services array to dynamically generate the dropdown
+        const availableServices = [
+            "General Inquiries",
+            "Cashier / Banking",
+            "Technical Support",
+            "Document Collection"
+        ];
+
+        // Update Clock
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }, 1000);
+
+        function addCustomer() {
+            const nameEl = document.getElementById('custName');
+            const serviceEl = document.getElementById('serviceType');
+            
+            if(!nameEl.value.trim()) {
+                alert("Please enter a customer name.");
+                return;
+            }
+
+            ticketCounter++;
+            const estWait = queue.length * AVG_TIME;
+            
+            const ticket = {
+                id: ticketCounter,
+                name: nameEl.value.trim(),
+                service: serviceEl.value,
+                wait: estWait
+            };
+
+            queue.push(ticket);
+            nameEl.value = "";
+            updateUI(ticket);
+            showToast(`Ticket #${ticket.id} issued successfully.`);
+        }
+
+        // --- NEW FEATURE: Update Service Type ---
+        function updateService(ticketId, newService) {
+            // Find the ticket in the queue array and update its service
+            const ticketIndex = queue.findIndex(t => t.id === ticketId);
+            if (ticketIndex !== -1) {
+                queue[ticketIndex].service = newService;
+                showToast(`Ticket #${ticketId} updated to ${newService}.`);
+                
+                // If it's the most recently added ticket showing on the left, update that view too
+                const currentDisplayId = document.getElementById('tId').innerText.replace('#', '');
+                if (currentDisplayId == ticketId) {
+                    document.getElementById('tService').innerText = newService;
+                }
+            }
+        }
+
+        function serveNext() {
+            if(queue.length === 0) {
+                showToast("No customers currently in line.");
+                return;
+            }
+
+            const called = queue.shift();
+            servedCount++;
+            showToast(`📣 Calling Ticket #${called.id}: ${called.name}`, true);
+            updateUI();
+        }
+
+        function updateUI(latest = null) {
+            const listEl = document.getElementById('queueList');
+            const emptyEl = document.getElementById('emptyState');
+            
+            // Render Table
+            listEl.innerHTML = "";
+            queue.forEach((t, index) => {
+                
+                // Generate the dropdown options dynamically, pre-selecting the current service
+                let optionsHtml = '';
+                availableServices.forEach(service => {
+                    const isSelected = t.service === service ? 'selected' : '';
+                    optionsHtml += `<option value="${service}" ${isSelected}>${service}</option>`;
+                });
+
+                const row = `
+                    <tr class="hover:bg-blue-50/50 transition-colors">
+                        <td class="px-6 py-4 font-bold text-blue-600">#${t.id}</td>
+                        <td class="px-6 py-4 font-medium text-slate-700">${t.name}</td>
+                        
+                        <td class="px-6 py-4">
+                            <select 
+                                onchange="updateService(${t.id}, this.value)" 
+                                class="inline-select text-xs font-medium text-slate-600 py-1.5 px-2 rounded-md outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                            >
+                                ${optionsHtml}
+                            </select>
+                        </td>
+                        
+                        <td class="px-6 py-4"><span class="px-2 py-1 bg-slate-100 rounded font-bold text-slate-600 text-[10px]">${index * AVG_TIME} min</span></td>
+                    </tr>
+                `;
+                listEl.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Counters
+            document.getElementById('count-waiting').innerText = queue.length;
+            document.getElementById('count-total').innerText = ticketCounter - 1000;
+            document.getElementById('count-served').innerText = servedCount;
+
+            emptyEl.classList.toggle('hidden', queue.length > 0);
+
+            // Ticket Preview Logic
+            const ticketArea = document.getElementById('ticketArea');
+            if(latest) {
+                ticketArea.classList.remove('hidden');
+                document.getElementById('tId').innerText = `#${latest.id}`;
+                document.getElementById('tName').innerText = latest.name;
+                document.getElementById('tService').innerText = latest.service;
+                document.getElementById('tWait').innerText = `~${latest.wait} mins`;
+            } else if (queue.length === 0) {
+                ticketArea.classList.add('hidden');
+            }
+        }
+
+        function showToast(msg, isCall = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = msg;
+            
+            // Reset animation
+            toast.classList.remove('hidden', 'translate-y-10', 'opacity-0');
+            
+            if(isCall) {
+                toast.classList.add('ring-2', 'ring-blue-500');
+                toast.querySelector('i').className = "fa-solid fa-bullhorn text-blue-400";
+            } else {
+                toast.classList.remove('ring-2', 'ring-blue-500');
+                toast.querySelector('i').className = "fa-solid fa-circle-check text-emerald-400";
+            }
+
+            // Clear previous timeouts if rapidly clicking
+            if(window.toastTimeout) clearTimeout(window.toastTimeout);
+            
+            window.toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300); // Wait for fade out
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
